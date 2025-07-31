@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Caesar Cipher Solver</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #e5e7eb;
+      min-height: 100vh;
+      padding: 48px 16px;
+    }
+
+    .container {
+      max-width: 672px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 30px;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .input-section {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+
+    textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 14px;
+      resize: vertical;
+      box-sizing: border-box;
+    }
+
+    #load-example {
+      margin-top: 8px;
+      font-size: 14px;
+      color: #2563eb;
+      background: none;
+      border: none;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    #load-example:hover {
+      color: #1d4ed8;
+    }
+
+    #decode-button {
+      width: 100%;
+      padding: 12px 24px;
+      font-size: 16px;
+      font-weight: 500;
+      color: white;
+      background-color: #2563eb;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    #decode-button:hover:not(:disabled) {
+      background-color: #1d4ed8;
+    }
+
+    #decode-button:disabled {
+      background-color: #d1d5db;
+      cursor: not-allowed;
+    }
+
+    #result-section {
+      margin-top: 24px;
+      display: none;
+    }
+
+    .success, .partial, .error {
+      padding: 16px;
+      border-radius: 6px;
+      border-left: 4px solid;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .success {
+      background-color: #d1fae5;
+      border-left-color: #10b981;
+      color: #065f46;
+    }
+
+    .partial {
+      background-color: #fef3c7;
+      border-left-color: #f59e0b;
+      color: #92400e;
+    }
+
+    .error {
+      background-color: #fee2e2;
+      border-left-color: #ef4444;
+      color: #991b1b;
+    }
+
+    .success span:first-child {
+      color: #10b981;
+      font-size: 20px;
+    }
+
+    .partial span:first-child {
+      color: #f59e0b;
+      font-size: 20px;
+    }
+
+    .error span:first-child {
+      color: #ef4444;
+      font-size: 20px;
+    }
+
+    .mono {
+      font-family: monospace;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Caesar Cipher Solver</h1>
+    
+    <div class="input-section">
+      <label for="cipher-input">Cipher Text</label>
+      <textarea id="cipher-input" rows="4" placeholder="Enter your cipher text here..."></textarea>
+      <button id="load-example">Load Example</button>
+    </div>
+    
+    <button id="decode-button" disabled>Decode Cipher</button>
+    
+    <div id="result-section"></div>
+  </div>
+  
+  <script>
+    // Test word set for artifact preview - will be replaced by fetch in production
+    let englishWordsSet = new Set([
+      "venture", "bench", "doctor", "address", // Test case words
+      "hello", "world", "how", "are", "you", "today",
+      "the", "and", "for", "with", "this", "that",
+      "have", "from", "what", "when", "where", "which"
+    ]);
+
+    // Caesar cipher functions
+    function caesarDecrypt(text, shift) {
+      let result = "";
+      
+      for (let char of text) {
+        if (char.match(/[a-zA-Z]/)) {
+          if (char.match(/[A-Z]/)) {
+            let charPos = char.charCodeAt(0) - 65;
+            let newPos = ((charPos - shift) % 26 + 26) % 26;
+            result += String.fromCharCode(newPos + 65);
+          } else {
+            let charPos = char.charCodeAt(0) - 97;
+            let newPos = ((charPos - shift) % 26 + 26) % 26;
+            result += String.fromCharCode(newPos + 97);
+          }
+        } else {
+          result += char;
+        }
+      }
+      
+      return result;
+    }
+
+    function caesarAutoSolver(ciphertext, englishWords) {
+      if (!ciphertext.match(/[a-zA-Z]/)) {
+        throw new Error("Input must contain alphabetic characters");
+      }
+      
+      const shiftsToTry = [13, 3, 1, 25, 7, 12, 2, 4, 5, 6, 8, 9, 10, 11, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24];
+      
+      let bestResult = "";
+      let bestScore = 0;
+      
+      for (let shift of shiftsToTry) {
+        const decrypted = caesarDecrypt(ciphertext, shift);
+        const words = decrypted.toLowerCase().match(/[a-zA-Z]+/g) || [];
+        
+        if (words.length === 0) continue;
+        
+        const validCount = words.filter(word => englishWords.has(word)).length;
+        const score = validCount / words.length;
+        
+        if (score > bestScore) {
+          bestScore = score;
+          bestResult = decrypted;
+        }
+        
+        if (score >= 0.75) {
+          return decrypted;
+        }
+      }
+      
+      if (bestScore < 0.30) {
+        return `Error: No valid decryption found. Best attempt had ${(bestScore * 100).toFixed(1)}% valid words. This may not be a Caesar cipher.`;
+      }
+      
+      return `${bestResult} (Confidence: ${(bestScore * 100).toFixed(1)}%)`;
+    }
+
+    // Initialize page
+    window.addEventListener('DOMContentLoaded', () => {
+      const decodeButton = document.getElementById('decode-button');
+      
+      // Just enable the button for artifact testing
+      decodeButton.disabled = false;
+      
+      /* GITHUB PAGES VERSION - Uncomment this block and comment out the line above
+      decodeButton.textContent = 'Loading dictionary...';
+      
+      fetch('https://raw.githubusercontent.com/skylerd91/caesar/main/words.json')
+        .then(response => {
+          if (!response.ok) throw new Error('Failed to fetch');
+          return response.json();
+        })
+        .then(words => {
+          englishWordsSet = new Set(words);
+          decodeButton.disabled = false;
+          decodeButton.textContent = 'Decode Cipher';
+        })
+        .catch(error => {
+          const resultSection = document.getElementById('result-section');
+          resultSection.style.display = 'block';
+          resultSection.innerHTML = '<div class="error"><span>❌</span>Failed to load word list. Please check your internet connection.</div>';
+        });
+      */
+    });
+
+    // Load example button
+    document.getElementById('load-example').addEventListener('click', () => {
+      document.getElementById('cipher-input').value = 'HQZFGDQ NQZOT PAOFAD MPPDQEE';
+    });
+
+    // Decode button
+    document.getElementById('decode-button').addEventListener('click', () => {
+      const input = document.getElementById('cipher-input').value;
+      const resultSection = document.getElementById('result-section');
+      
+      if (!input.trim()) {
+        return;
+      }
+      
+      try {
+        const result = caesarAutoSolver(input, englishWordsSet);
+        resultSection.style.display = 'block';
+        
+        if (result.startsWith('Error:')) {
+          resultSection.innerHTML = `<div class="error"><span>❌</span>${result}</div>`;
+        } else if (result.includes('(Confidence:')) {
+          resultSection.innerHTML = `<div class="partial"><span>⚠️</span><span class="mono">${result}</span></div>`;
+        } else {
+          resultSection.innerHTML = `<div class="success"><span>✓</span><span class="mono">${result}</span></div>`;
+        }
+      } catch (error) {
+        resultSection.style.display = 'block';
+        resultSection.innerHTML = `<div class="error"><span>❌</span>${error.message}</div>`;
+      }
+    });
+
+    // Enable/disable decode button based on input
+    document.getElementById('cipher-input').addEventListener('input', (e) => {
+      const decodeButton = document.getElementById('decode-button');
+      decodeButton.disabled = !e.target.value.trim();
+    });
+  </script>
+</body>
+</html>
